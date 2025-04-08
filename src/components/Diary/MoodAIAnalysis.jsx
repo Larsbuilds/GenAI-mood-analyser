@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { openAIService } from '@/services/api/openAI';
+import openAIService from '@/services/api/openAI';
 import { toast } from 'react-toastify';
+import MoodChart from './MoodChart';
 
 const MoodAIAnalysis = ({ entries }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -79,6 +80,13 @@ Please provide your analysis in JSON format.`;
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Add the MoodChart component */}
+        {entries.length > 0 && (
+          <div className="mt-8">
+            <MoodChart entries={entries} />
           </div>
         )}
       </div>

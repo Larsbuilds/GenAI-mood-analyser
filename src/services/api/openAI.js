@@ -45,7 +45,7 @@ export const validateInput = (text) => {
   }
 };
 
-export const openAIService = {
+const openAIService = {
   async getChatCompletion(prompt, isJsonResponse = false) {
     validateInput(prompt);
     
@@ -55,21 +55,24 @@ export const openAIService = {
     
     try {
       rateLimiter.addRequest();
-      const response = await axios.post(`${openAIConfig.baseURL}/chat/completions`, {
-        model: 'gpt-3.5-turbo',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 200,
-        ...(isJsonResponse && { response_format: { type: "json_object" } })
-      }, {
-        headers: openAIConfig.headers
-      });
-
-      return response.data;
+      const { data } = await axios.post(
+        `${import.meta.env.VITE_OPENAI_API}/chat/completions`,
+        {
+          model: 'gpt-3.5-turbo',
+          messages: [{ role: 'user', content: prompt }],
+          response_format: isJsonResponse ? { type: 'json_object' } : undefined
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`
+          }
+        }
+      );
+      return data;
     } catch (error) {
-      if (error.response) {
-        throw new APIError(error.response.data.error?.message || 'API request failed', error.response.status);
-      }
-      throw new APIError('Failed to get chat completion', 500);
+      console.error('OpenAI API error:', error);
+      throw new APIError(error.response?.data?.error?.message || 'Failed to get response from OpenAI', error.response?.status || 500);
     }
   },
 
@@ -82,21 +85,28 @@ export const openAIService = {
     
     try {
       rateLimiter.addRequest();
-      const response = await axios.post(`${openAIConfig.baseURL}/audio/speech`, {
-        model: 'tts-1',
-        input: text,
-        voice: 'alloy'
-      }, {
-        headers: openAIConfig.headers,
-        responseType: 'blob'
-      });
-
-      return URL.createObjectURL(response.data);
+      const response = await axios.post(
+        `${import.meta.env.VITE_OPENAI_API}/audio/speech`,
+        {
+          model: 'tts-1',
+          input: text,
+          voice: 'alloy',
+          response_format: 'mp3'
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`
+          },
+          responseType: 'arraybuffer'  // Important: tell axios to expect binary data
+        }
+      );
+      
+      // Create a Blob from the audio data with correct MIME type
+      return new Blob([response.data], { type: 'audio/mpeg' });
     } catch (error) {
-      if (error.response) {
-        throw new APIError(error.response.data.error?.message || 'API request failed', error.response.status);
-      }
-      throw new APIError('Failed to generate speech', 500);
+      console.error('OpenAI TTS error:', error);
+      throw new APIError(error.response?.data?.error?.message || 'Failed to generate speech', error.response?.status || 500);
     }
   },
 
@@ -126,4 +136,6 @@ export const openAIService = {
       throw new APIError('Failed to generate image', 500);
     }
   }
-}; 
+};
+
+export default openAIService; 

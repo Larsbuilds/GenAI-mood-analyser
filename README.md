@@ -1,56 +1,86 @@
-# React SPA for Notes App
+# Notes App with OpenAI API Integration
 
-Used during AI prompting recap for Gen AI integration with OpenAI API
+A modern web application for managing diary entries and school notes, enhanced with AI capabilities.
 
-## Project Plan
+## Features
 
-For a detailed breakdown of the implementation plan, please see [Project Plan](docs/project-plan.md).
+- **Diary Management**
+  - Create and view diary entries
+  - Mood analysis using AI
+  - Visual mood tracking with charts
+  - Placeholder images for entries without images
 
-## Setup
+- **School Notes**
+  - Create and organize study notes
+  - AI-powered summary generation
+  - Audio summary generation (text-to-speech)
+  - Interactive audio player with progress tracking
 
-- Fork repo
-- Clone into your computer
-- `cd` into working directory
-- `npm i` to install dependencies
-- create a `.env.development.local` file with two variables:
-  - `VITE_NOTES_API` set to `http://localhost:8080` assuming your backend API is running on port 8080
-  - `VITE_OPENAI_API` set to `https://api.openai.com/v1`
-  - `VITE_OPENAI_API_KEY` set to your OpenAI API key
-- The server defaults to port `5173`, although you can override this in the script sections in `package.json`
+- **AI Integration**
+  - Mood analysis and visualization
+  - Smart note summarization
+  - Text-to-speech conversion
+  - Rate limiting and error handling
 
-## Commands
+## Tech Stack
 
-- `npm run dev`: Starts development server, pulling environment variables from `.env.development.local` file
-- `npm run build`: Build app with enviroment set to `.env.production.local`
-- `npm start`: Production server
+- React + Vite
+- TailwindCSS + DaisyUI
+- Chart.js for visualizations
+- OpenAI API integration
+- Axios for API requests
 
-## Usage
+## Getting Started
 
-- The application has its entry point at `src/main.jsx`
-- `App.jsx` return a `RouterProvider` with 2 routes:
-  - `/` => `Diary`
-  - `/notes` => `SchoolNotes`
-- The code is organised as follows:
-  - There's a path resolution alias `@/` => `.src/` to avoid relative paths in imports. This is setup in `vite.config.js` to inform Vite, and `jsconfig.json` to inform the TS compiler in the editor.
-    - e.g:
-    ```javascript
-    // src/pages/Diary.jsx
-    import { CreateEntry, MoodAIAnalysis, EntriesList } from '@/components/Diary';
-    // instead of
-    import { CreateEntry, MoodAIAnalysis, EntriesList } from '../components/Diary';
-    ```
-  - For organisation sake, components are grouped in directories, and imported and re-exported from an `index.js` file:
-    ```javascript
-    // src/pages/Diary.jsx
-    // This allows us to do this
-    import { CreateEntry, MoodAIAnalysis, EntriesList } from '@/components/Diary';
-    // instead of this
-    import CreateEntry from '@/components/Diary/CreateEntry';
-    import MoodAIAnalysis from '@/components/Diary/MoodAIAnalysis';
-    import EntriesList from '@/components/Diary/EntriesList';
-    // Ain't nobody got time for that
-    ```
-  - `pages`: React components that are directly mapped to a route.
-  - `components`: React components used in pages
-  - `layouts`: React components that are used as layouts in routes and render `Outlet`
-  - `TailwindCSS` and `DaisyUI` are configured for styles <3
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Create `.env.development.local` with:
+   ```
+   VITE_NOTES_API=http://localhost:3000
+   VITE_OPENAI_API=https://api.openai.com/v1
+   VITE_OPENAI_API_KEY=your_api_key_here
+   ```
+4. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+## Project Structure
+
+- `src/components/` - Reusable UI components
+  - `Diary/` - Diary-related components
+  - `Notes/` - School notes components
+- `src/services/` - API integration services
+- `src/pages/` - Main application pages
+- `src/layouts/` - Page layouts and navigation
+
+## Recent Updates
+
+- Added audio summary feature with text-to-speech
+- Implemented mood visualization charts
+- Added placeholder images for entries
+- Fixed button positioning and consistency
+- Improved error handling and user feedback
+
+## Next Steps
+
+- Implement streaming response support
+- Add accessibility improvements
+- Write comprehensive tests
+- Add API documentation
+- Optimize performance
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## License
+
+MIT
