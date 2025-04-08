@@ -1,6 +1,10 @@
 # React SPA for Notes App
 
-Used during AI prompting recap for Gen AI integration
+Used during AI prompting recap for Gen AI integration with OpenAI API
+
+## Project Plan
+
+For a detailed breakdown of the implementation plan, please see [Project Plan](docs/project-plan.md).
 
 ## Setup
 
@@ -10,7 +14,8 @@ Used during AI prompting recap for Gen AI integration
 - `npm i` to install dependencies
 - create a `.env.development.local` file with two variables:
   - `VITE_NOTES_API` set to `http://localhost:8080` assuming your backend API is running on port 8080
-  - `VITE_PROXY_OPENAI` set to `http://localhost:5050` assuming your Open AI proxy API is running on port 5050
+  - `VITE_OPENAI_API` set to `https://api.openai.com/v1`
+  - `VITE_OPENAI_API_KEY` set to your OpenAI API key
 - The server defaults to port `5173`, although you can override this in the script sections in `package.json`
 
 ## Commands

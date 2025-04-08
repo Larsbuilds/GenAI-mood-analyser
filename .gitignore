@@ -23,4 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 
+# Backend app
+be-notes-app/
+
 .env.development.local

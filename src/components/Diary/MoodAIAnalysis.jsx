@@ -1,48 +1,88 @@
-import { useRef } from 'react';
-import { Charts } from '@/components/Diary';
+import { useState } from 'react';
+import { openAIService } from '@/services/api/openAI';
+import { toast } from 'react-toastify';
 
 const MoodAIAnalysis = ({ entries }) => {
-  const modalRef = useRef();
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState(null);
 
-  const handleAISummary = async () => {};
+  const analyzeMood = async () => {
+    if (entries.length === 0) {
+      toast.warning('No entries to analyze');
+      return;
+    }
+
+    setIsAnalyzing(true);
+    try {
+      // Create a prompt that asks for mood analysis in JSON format
+      const prompt = `Please analyze the mood and sentiment of these diary entries and return a JSON object with the following structure:
+{
+  "mood": "positive|negative|neutral",
+  "confidence": number between 0 and 1,
+  "emotions": ["emotion1", "emotion2", "emotion3"]
+}
+
+Here are the entries in chronological order:
+
+${entries.map(entry => `Date: ${new Date(entry.date).toLocaleDateString()}
+Content: ${entry.content}`).join('\n\n')}
+
+Please provide your analysis in JSON format.`;
+
+      const response = await openAIService.getChatCompletion(prompt, true);
+      const result = JSON.parse(response.choices[0].message.content);
+      setAnalysis(result);
+    } catch (error) {
+      console.error('Mood analysis error:', error);
+      toast.error(error.message || 'Failed to analyze mood');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   return (
-    <>
-      <div className='fixed bottom-4 right-4'>
-        <button
-          onClick={() => modalRef.current.showModal()}
-          className='bg-purple-400 hover:bg-purple-300 text-white font-bold py-2 px-4 rounded-full shadow-lg w-10 h-10'
-        >
-          ✨
-        </button>
-      </div>
-      <dialog id='modal-note' className='modal' ref={modalRef}>
-        <div className='modal-box h-[600px] py-0 w-11/12 max-w-5xl'>
-          <div className='modal-action items-center justify-between mb-2'>
-            <h1 className='text-2xl text-center'>Get your AI Gen Mood Analysis</h1>
-            <form method='dialog'>
-              <button className='btn'>&times;</button>
-            </form>
-          </div>
-          <div className='flex items-center gap-3'>
-            <div className='textarea textarea-success w-1/2 h-[400px] overflow-y-scroll'>
-              AI SUMMARY GOES HERE...
-            </div>
-            <div className='textarea textarea-success w-1/2 h-[400px] overflow-y-scroll'>
-              <Charts aiSummary='' />
-            </div>
-          </div>
-          <div className='flex justify-center'>
-            <button
-              className='mt-5 btn bg-purple-500 hover:bg-purple-400 text-white'
-              onClick={handleAISummary}
-            >
-              Gen AI mood analysis ✨
-            </button>
-          </div>
+    <div className="card bg-base-200 shadow-xl mt-8">
+      <div className="card-body">
+        <h2 className="card-title">AI Mood Analysis</h2>
+        <div className="flex justify-between items-center">
+          <button
+            className="btn btn-primary"
+            onClick={analyzeMood}
+            disabled={isAnalyzing || entries.length === 0}
+          >
+            {isAnalyzing ? (
+              <>
+                <span className="loading loading-spinner"></span>
+                Analyzing...
+              </>
+            ) : (
+              'Analyze Mood'
+            )}
+          </button>
         </div>
-      </dialog>
-    </>
+
+        {analysis && (
+          <div className="mt-4">
+            <div className="stats shadow">
+              <div className="stat">
+                <div className="stat-title">Overall Mood</div>
+                <div className="stat-value">{analysis.mood || 'Unknown'}</div>
+                <div className="stat-desc">
+                  Confidence: {analysis.confidence ? Math.round(analysis.confidence * 100) : 0}%
+                </div>
+              </div>
+              
+              <div className="stat">
+                <div className="stat-title">Key Emotions</div>
+                <div className="stat-value text-sm">
+                  {analysis.emotions?.join(', ') || 'No emotions detected'}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 
