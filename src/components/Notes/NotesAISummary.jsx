@@ -8,8 +8,6 @@ const NotesAISummary = ({ notes }) => {
   const [summary, setSummary] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [stream, setStream] = useState(false);
-  const [audioUrl, setAudioUrl] = useState(null);
-  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
 
   const handleAISummary = async () => {
     if (notes.length === 0) {
@@ -32,30 +30,6 @@ Please format the summary with clear sections and bullet points where appropriat
       toast.error(error.message || 'Failed to generate summary');
     } finally {
       setIsGenerating(false);
-    }
-  };
-
-  const handleGenerateAudio = async () => {
-    if (!summary) {
-      toast.warning('Please generate a summary first');
-      return;
-    }
-
-    setIsGeneratingAudio(true);
-    try {
-      const audioBlob = await openAIService.generateSpeech(summary);
-      // Clean up previous URL if it exists
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl);
-      }
-      // Create a new URL from the Blob
-      const url = URL.createObjectURL(audioBlob);
-      setAudioUrl(url);
-    } catch (error) {
-      console.error('Audio generation error:', error);
-      toast.error(error.message || 'Failed to generate audio');
-    } finally {
-      setIsGeneratingAudio(false);
     }
   };
 
@@ -98,42 +72,23 @@ Please format the summary with clear sections and bullet points where appropriat
                 summary
               )}
             </div>
-            <div className="flex gap-2">
-              <button
-                className='btn bg-purple-500 hover:bg-purple-400 text-white'
-                onClick={handleAISummary}
-                disabled={isGenerating || notes.length === 0}
-              >
-                {isGenerating ? (
-                  <>
-                    <span className="loading loading-spinner"></span>
-                    Generating...
-                  </>
-                ) : (
-                  'Generate Summary ✨'
-                )}
-              </button>
-              <button
-                className='btn bg-blue-500 hover:bg-blue-400 text-white'
-                onClick={handleGenerateAudio}
-                disabled={isGeneratingAudio || !summary}
-              >
-                {isGeneratingAudio ? (
-                  <>
-                    <span className="loading loading-spinner"></span>
-                    Generating Audio...
-                  </>
-                ) : (
-                  'Generate Audio 🔊'
-                )}
-              </button>
-            </div>
-            {audioUrl && (
+            <button
+              className='btn bg-purple-500 hover:bg-purple-400 text-white'
+              onClick={handleAISummary}
+              disabled={isGenerating || notes.length === 0}
+            >
+              {isGenerating ? (
+                <>
+                  <span className="loading loading-spinner"></span>
+                  Generating...
+                </>
+              ) : (
+                'Generate Summary ✨'
+              )}
+            </button>
+            {summary && (
               <div className="w-full mt-4">
-                <AudioPlayer 
-                  audioUrl={audioUrl} 
-                  onError={(error) => toast.error(error)}
-                />
+                <AudioPlayer text={summary} />
               </div>
             )}
           </div>
