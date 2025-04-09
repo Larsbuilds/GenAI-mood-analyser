@@ -5,6 +5,7 @@ import AudioPlayer from './AudioPlayer';
 
 const NotesAISummary = ({ notes }) => {
   const modalRef = useRef(null);
+  const abortControllerRef = useRef(null);
   const [summary, setSummary] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [stream, setStream] = useState(false);
@@ -15,7 +16,17 @@ const NotesAISummary = ({ notes }) => {
       return;
     }
 
+    // Cancel any existing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
     setIsGenerating(true);
+    setSummary('');
+    
+    // Create new abort controller
+    abortControllerRef.current = new AbortController();
+
     try {
       const prompt = `Please provide a concise summary of these notes in a clear and organized manner:
 
@@ -23,12 +34,31 @@ ${notes.map(note => `Title: ${note.title}\nContent: ${note.content}`).join('\n\n
 
 Please format the summary with clear sections and bullet points where appropriate.`;
 
-      const response = await openAIService.getChatCompletion(prompt);
-      setSummary(response.choices[0].message.content);
+      if (stream) {
+        // Use streaming API
+        for await (const chunk of openAIService.getChatCompletionStream(prompt, abortControllerRef.current.signal)) {
+          setSummary(prev => prev + chunk);
+        }
+      } else {
+        // Use regular API
+        const response = await openAIService.getChatCompletion(prompt);
+        setSummary(response.choices[0].message.content);
+      }
     } catch (error) {
-      console.error('Summary generation error:', error);
-      toast.error(error.message || 'Failed to generate summary');
+      if (error.status !== 499) { // Don't show error for cancelled requests
+        console.error('Summary generation error:', error);
+        toast.error(error.message || 'Failed to generate summary');
+      }
     } finally {
+      setIsGenerating(false);
+      abortControllerRef.current = null;
+    }
+  };
+
+  const handleCancel = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
       setIsGenerating(false);
     }
   };
@@ -65,27 +95,41 @@ Please format the summary with clear sections and bullet points where appropriat
           <div className='flex flex-col items-center gap-3'>
             <div className='textarea textarea-success w-full h-[400px] overflow-y-scroll'>
               {isGenerating ? (
-                <div className="flex items-center justify-center h-full">
-                  <span className="loading loading-spinner loading-lg"></span>
+                <div className="flex flex-col items-center justify-center h-full">
+                  {stream ? (
+                    summary || <span className="loading loading-spinner loading-lg"></span>
+                  ) : (
+                    <span className="loading loading-spinner loading-lg"></span>
+                  )}
                 </div>
               ) : (
                 summary
               )}
             </div>
-            <button
-              className='btn bg-purple-500 hover:bg-purple-400 text-white'
-              onClick={handleAISummary}
-              disabled={isGenerating || notes.length === 0}
-            >
-              {isGenerating ? (
-                <>
-                  <span className="loading loading-spinner"></span>
-                  Generating...
-                </>
-              ) : (
-                'Generate Summary ✨'
+            <div className="flex gap-2">
+              <button
+                className='btn bg-purple-500 hover:bg-purple-400 text-white'
+                onClick={handleAISummary}
+                disabled={isGenerating || notes.length === 0}
+              >
+                {isGenerating ? (
+                  <>
+                    <span className="loading loading-spinner"></span>
+                    Generating...
+                  </>
+                ) : (
+                  'Generate Summary ✨'
+                )}
+              </button>
+              {isGenerating && (
+                <button
+                  className='btn btn-error text-white'
+                  onClick={handleCancel}
+                >
+                  Cancel
+                </button>
               )}
-            </button>
+            </div>
             {summary && (
               <div className="w-full mt-4">
                 <AudioPlayer text={summary} />

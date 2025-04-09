@@ -1,19 +1,33 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import speechService from '@/services/api/speech';
+import { toast } from 'react-toastify';
 
 const AudioPlayer = ({ text }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [isSupported, setIsSupported] = useState(true);
+  const progressInterval = useRef(null);
 
   useEffect(() => {
+    // Check if speech synthesis is supported
+    setIsSupported('speechSynthesis' in window);
+    
     // Clean up speech synthesis when component unmounts
     return () => {
+      if (progressInterval.current) {
+        clearInterval(progressInterval.current);
+      }
       speechService.stop();
     };
   }, []);
 
   const togglePlay = async () => {
+    if (!isSupported) {
+      toast.error('Speech synthesis is not supported in your browser');
+      return;
+    }
+
     if (isPlaying) {
       if (isPaused) {
         speechService.resume();
@@ -32,10 +46,14 @@ const AudioPlayer = ({ text }) => {
         const estimatedDuration = (words / 150) * 60 * 1000; // in milliseconds
         
         // Update progress every 100ms
-        const interval = setInterval(() => {
+        if (progressInterval.current) {
+          clearInterval(progressInterval.current);
+        }
+        
+        progressInterval.current = setInterval(() => {
           setProgress(prev => {
             if (prev >= 100) {
-              clearInterval(interval);
+              clearInterval(progressInterval.current);
               return 100;
             }
             return prev + (100 / (estimatedDuration / 100));
@@ -44,23 +62,44 @@ const AudioPlayer = ({ text }) => {
 
         await speechService.speak(text);
         
-        clearInterval(interval);
+        if (progressInterval.current) {
+          clearInterval(progressInterval.current);
+        }
         setProgress(100);
       } catch (error) {
         console.error('Speech error:', error);
+        if (error.message !== 'Speech synthesis failed: interrupted') {
+          toast.error(error.message || 'Failed to play audio');
+        }
       } finally {
         setIsPlaying(false);
         setIsPaused(false);
+        if (progressInterval.current) {
+          clearInterval(progressInterval.current);
+          progressInterval.current = null;
+        }
       }
     }
   };
 
   const stop = () => {
+    if (progressInterval.current) {
+      clearInterval(progressInterval.current);
+      progressInterval.current = null;
+    }
     speechService.stop();
     setIsPlaying(false);
     setIsPaused(false);
     setProgress(0);
   };
+
+  if (!isSupported) {
+    return (
+      <div className="flex flex-col items-center gap-4 p-4 bg-base-200 rounded-lg">
+        <p className="text-error">Speech synthesis is not supported in your browser</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center gap-4 p-4 bg-base-200 rounded-lg">
@@ -69,6 +108,7 @@ const AudioPlayer = ({ text }) => {
           onClick={togglePlay}
           className="btn btn-circle btn-primary"
           aria-label={isPlaying ? (isPaused ? 'Resume' : 'Pause') : 'Play'}
+          disabled={!text}
         >
           {isPlaying ? (
             isPaused ? (
@@ -92,6 +132,7 @@ const AudioPlayer = ({ text }) => {
           onClick={stop}
           className="btn btn-circle btn-ghost"
           aria-label="Stop"
+          disabled={!isPlaying}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

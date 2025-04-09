@@ -76,6 +76,60 @@ const openAIService = {
     }
   },
 
+  async *getChatCompletionStream(prompt, signal) {
+    validateInput(prompt);
+    
+    if (!rateLimiter.canMakeRequest()) {
+      throw new APIError('Rate limit exceeded. Please try again later.', 429);
+    }
+    
+    try {
+      rateLimiter.addRequest();
+      const response = await fetch(`${import.meta.env.VITE_OPENAI_API}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [{ role: 'user', content: prompt }],
+          stream: true
+        }),
+        signal
+      });
+
+      if (!response.ok) {
+        throw new APIError(`API request failed: ${response.statusText}`, response.status);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+            const data = JSON.parse(line.slice(6));
+            const content = data.choices[0]?.delta?.content;
+            if (content) yield content;
+          }
+        }
+      }
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw new APIError('Request was cancelled', 499);
+      }
+      console.error('OpenAI Streaming API error:', error);
+      throw new APIError(error.message || 'Failed to get streaming response from OpenAI', error.status || 500);
+    }
+  },
+
   async generateSpeech(text) {
     validateInput(text);
     
