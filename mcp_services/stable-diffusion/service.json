@@ -1,0 +1,58 @@
+{
+    "id": "stable-diffusion",
+    "name": "Stable Diffusion",
+    "description": "Image generation using Stable Diffusion v1.4",
+    "version": "1.0.0",
+    "tools": [
+        {
+            "name": "generate_image",
+            "description": "Generate an image from a text prompt using Stable Diffusion",
+            "parameters": {
+                "type": "object",
+                "required": ["prompt"],
+                "properties": {
+                    "prompt": {
+                        "type": "string",
+                        "description": "The text prompt to generate an image from"
+                    },
+                    "negative_prompt": {
+                        "type": "string",
+                        "description": "Text prompt that the image should not contain"
+                    },
+                    "steps": {
+                        "type": "integer",
+                        "description": "Number of inference steps",
+                        "default": 15
+                    },
+                    "width": {
+                        "type": "integer",
+                        "description": "Width of the generated image",
+                        "default": 512
+                    },
+                    "height": {
+                        "type": "integer",
+                        "description": "Height of the generated image",
+                        "default": 512
+                    }
+                }
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "image": {
+                        "type": "string",
+                        "description": "Base64 encoded PNG image"
+                    }
+                }
+            }
+        }
+    ],
+    "service": {
+        "type": "python",
+        "command": "python src/server.py",
+        "protocol": {
+            "type": "http",
+            "url": "http://localhost:7861"
+        }
+    }
+} 
